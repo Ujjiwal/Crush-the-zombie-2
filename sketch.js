@@ -9,85 +9,98 @@ const Composite = Matter.Composite;
 
 let engine;
 let world;
-var base;
-var left;
-var right;
-var bridge;
+var ground, bridge;
+var leftWall, rightWall;
 var jointPoint;
 var jointLink;
-var stones = [];
-var zombie;
-var zombie1;
-var zombie2;
-var zombie3;
-var zombie4;
+var zombie1, zombie2, zombie3, zombie4, sadzombie;
+var breakButton;
+var backgroundImage;
 
-function preLoad(){
-  zombie1 = loadImage("assets/zombie1.png");
-  zombie2 = loadImage("assets/zombie2.png");
-  zombie3 = loadImage("assets/zombie3.png");
-  zombie4 = loadImage("assets/zombie4.png");
-  backgroundImage = loadImage("assets/background.png");
+var stones = [];
+var collided = false;
+function preload() {
+  zombie1 = loadImage("./assets/zombie1.png");
+  zombie2 = loadImage("./assets/zombie2.png");
+
+  zombie3 = loadImage("./assets/zombie3.png");
+  zombie4 = loadImage("./assets/zombie4.png");
+  sadzombie = loadImage("./assets/zombies.png");
+
+  backgroundImage = loadImage("./assets/background.png");
 }
 
 function setup() {
-  createCanvas(windowWidth,windowHeight);
+  createCanvas(windowWidth, windowHeight);
   engine = Engine.create();
   world = engine.world;
   frameRate(80);
 
-  base = new Base(0,height-10,width*2,20);
-  left = new Base(100,height-300,200,height/2+100);
-  right = new Base(width-100,height-300,200,height/2+100);
+  ground = new Base(0, height - 10, width * 2, 20);
+  leftWall = new Base(100, height - 300, 200, height / 2 + 100);
+  rightWall = new Base(width - 100, height - 300, 200, height / 2 + 100);
 
-  bridge = new Bridge(30,{x:50,y:height/2-140});
-  jointPoint = new Base(width-250,height/2-100,40,20);
-  Matter.Composite.add(bridge.body,jointPoint);
-  jointLink = new Link(bridge,jointPoint);
+  bridge = new Bridge(35, { x: 50, y: height / 2 - 140 });
+  jointPoint = new Base(width - 250, height / 2 - 100, 40, 20);
 
-  zombie = createSprite(width / 2, height -110);
-  zombie.addAnimation("lefttoright", zombie1,zombie2,zombie1);
-  zombie.addAnimation("righttoleft", zombie3,zombie4,zombie3);
+  Matter.Composite.add(bridge.body, jointPoint);
+  jointLink = new Link(bridge, jointPoint);
+
+  for (var i = 0; i <= 8; i++) {
+    var x = random(width / 2 - 200, width / 2 + 300);
+    var y = random(-100, 100);
+    var stone = new Stone(x, y, 80, 80);
+    stones.push(stone);
+  }
+
+  zombie = createSprite(width / 2, height - 100, 50, 50);
+  zombie.addAnimation("lefttoright", zombie1, zombie2, zombie1);
+  zombie.addAnimation("righttoleft", zombie3, zombie4, zombie3);
+  zombie.addImage("sad", sadzombie);
+
   zombie.scale = 0.1;
-  zombie.setVelocityX = 10;
+  zombie.velocityX = 10;
 
   breakButton = createButton("");
-  breakButton.position(width - 200, height / 2 -50);
-  breakButton.class("breakButton");
+  breakButton.position(width - 200, height / 2 - 50);
+  breakButton.class("breakbutton");
   breakButton.mousePressed(handleButtonPress);
-
-     for (var i = 0; i <= 8; i++) {
-     var x = random(width / 2 - 200, width / 2 + 300);
-     var y = random(-10,140);
-     var stone = new Stone(x,y,80,80);
-     stones.push(stone);
-     }
-
-  ellipseMode(RADIUS);
-  rectMode(CENTER);
 }
 
 function draw() {
-  background(51);
+  background(backgroundImage);
   Engine.update(engine);
 
-  base.show();
   bridge.show();
-  left.show();
-  right.show();
 
-  for (var stone of stones){
-  stone.show();
+  for (var stone of stones) {
+    stone.show();
+    var pos = stone.body.position;
+    var distance = dist(zombie.position.x, zombie.position.y, pos.x, pos.y);
+    if (distance <= 50) {
+      zombie.velocityX = 0;
+      Matter.Body.setVelocity(stone.body, { x: 10, y: -10 });
+      zombie.changeImage("sad");
+      collided = true;
+    }
+  }
+
+  if (zombie.position.x >= width - 300 && !collided) {
+    zombie.velocityX = -10;
+    zombie.changeAnimation("righttoleft");
+  }
+
+  if (zombie.position.x <= 300 && !collided) {
+    zombie.velocityX = 10;
+    zombie.changeAnimation("lefttoright");
   }
 
   drawSprites();
-
 }
 
-function handleButtonPress(){
-  jointLink.detach();
+function handleButtonPress() {
+  jointLink.dettach();
   setTimeout(() => {
-    bridge.breakButton();
+    bridge.break();
   }, 1500);
-  
 }
